@@ -3701,10 +3701,6 @@ lemma ZetaZeroFree12 :
   have log_pos : 0 < Real.log |t| := by exact Real.log_pos (by linarith)
   rw [pow_one, sub_le_sub_iff_left, div_div, div_le_div_iff_of_pos_left EinIoo.1 log_pos (mul_pos three_pos (Real.log_pos (lt_trans one_lt_ofNat ht)))] at contra
   linarith
-  -- ^ USE THIS CODE FOR THE ^1 ZERO FREE REGION
-  -- rw [sub_le_sub_iff_left, div_div, div_le_div_iff_of_pos_left EinIoo.1 log_pos (mul_pos three_pos (sq_pos_iff.mpr (Ne.symm (Std.ne_of_lt log_pos))))] at contra
-  -- sorry
-  -- ^ USE THIS CODE FOR THE ^2 ZERO FREE REGION
 
 -- coming from ZetaBounds
 theorem LogDerivZetaHolcLargeT12 :
@@ -3770,7 +3766,7 @@ lemma LogDerivZetaBoundedAndHolo12 : ∃ A C : ℝ, 0 < C ∧ A ∈ Ioc 0 (1 / 2
     · apply Real.log_pos
       linarith
     · apply min_le_left
-    · sorry -- very doable
+    · simp only [log_abs, pow_one, Std.le_refl]
   · intro T hT
     apply (holo _ hT).mono
     intro s hs
