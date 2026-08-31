@@ -2810,7 +2810,7 @@ lemma LogDerivZetaBdd_of_Re_ge_three_halves :
 
 
 
-@[blueprint
+@[blueprint "LogDerivZetaUniformLogSquaredBound"
   (title := "LogDerivZetaUniformLogSquaredBound")
   (statement := /--
     There exists a constant $F\in(0,1/42)$ such that for all $t\in\mathbb{R}$ with $|t|\geq 3$ one has
@@ -2841,8 +2841,73 @@ theorem LogDerivZetaUniformLogSquaredBound : ∃ (C : ℝ) (_ : 0 < C),
 
 
 
--- PROVE PNT WITH STANDARD TECH FROM HERE DOWN, ADD IN COMMENTS FOR NEW LEMMAS --
+blueprint_comment /--
+From here we closely follow our previous proof of the Medium PNT and we modify it using our new
+estimate in Theorem \ref{LogDerivZetaUniformLogSquaredBound}. Recall Definition
+\ref{SmoothedChebyshev}; for fixed $\varepsilon>0$ and a bump function $\nu$ supported on $[1/2,2]$
+we have
+$$\psi_\varepsilon(X)=\frac{1}{2\pi i}\int_{(\sigma_0)}\left(-\frac{\zeta'}{\zeta}(s)\right)
+  \mathcal{M}(\tilde{1}_\varepsilon)(s)\,X^s\,ds$$
+where $\sigma_0=1+1/\log X$. Let $T>3$ be a large constant to be chosen later, and we take
+$\sigma_1=1-A/\log T$ (where $A$ is a constant depending on $F$ coming from Theorem \ref{620}) with
+$\sigma_2$ a constant such that $\sigma_2<\sigma_1$. We integrate along the $\sigma_0$ vertical
+line, and we pull contours twice accumulating the pole at $s=1$. We now integrate along the curves
+\begin{itemize}
+    \item $I_1$: $\sigma_0-i\infty$ to $\sigma_0-iT$
+    \item $I_2$: $\sigma_1-iT$ to $\sigma_1+iT$
+    \item $I_3$: $\sigma_1-iT$ to $\sigma_1-3i$
+    \item $I_4$: $\sigma_2-3i$ to $\sigma_1-3i$
+    \item $I_5$: $\sigma_2-3i$ to $\sigma_2+3i$
+    \item $I_6$: $\sigma_2+3i$ to $\sigma_1+3i$
+    \item $I_7$: $\sigma_1+3i$ to $\sigma_1+iT$
+    \item $I_8$: $\sigma_1+iT$ to $\sigma_0+iT$
+    \item $I_9$: $\sigma_0+iT$ to $\sigma_0+i\infty$.
+\end{itemize}
+Now by combining Lemmas \ref{SmoothedChebyshevPull1} and \ref{SmoothedChebyshevPull2} we have that
+$$\psi_\varepsilon(X)=\mathcal{M}(\tilde{1}_\varepsilon)(1)\,X^1+I_1-I_2+I_{37}+I_8+I_9=
+  \mathcal{M}(\tilde{1}_\varepsilon)(1)\,X^1+I_1-I_2+I_3-I_4+I_5+I_6+I_7+I_8+I_9.$$
+Recalling Theorem \ref{SmoothedChebyshevClose} we have that
+$$\psi(X)=\mathcal{M}(\tilde{1}_\varepsilon)(1)\,X^1
+  +I_1-I_2+I_3-I_4+I_5+I_6+I_7+I_8+I_9+O(\varepsilon X\log X).$$
+We have estimates for four of these terms in Lemmas \ref{I1Bound}, \ref{I5Bound}, \ref{I9Bound},
+and \ref{MellinOfSmooth1c}. The remaining seven terms depend on our zero-free region in some way
+(be it the actual estimate or our new choice of $\sigma_1$), so we re-estimate these terms below.
+-/
 
+
+
+@[blueprint "I2Bound'"
+  (title := "I2Bound'")
+  (statement := /--
+    Assuming a bound of the form of Lemma \ref{LogDerivZetaUniformLogSquaredBound}, we have that
+    $$|I_2(\nu,\varepsilon,X,T)|\ll\frac{X}{\varepsilon T}.$$
+  -/)
+  (proof := /--
+    Unfold the definitions and apply the triangle inequality.
+    $$
+    \left|I_{2}(\nu, \varepsilon, X, T)\right| =
+    \left|\frac{1}{2\pi i} \int_{\sigma_1}^{\sigma_0}
+    \left(\frac{-\zeta'}\zeta(\sigma - T i) \right) \cdot
+    \mathcal M(\widetilde 1_\varepsilon)(\sigma - T i) \cdot
+    X^{\sigma - T i}
+    \ d\sigma
+    \right|
+    $$
+    $$\leq
+    \frac{1}{2\pi}
+    \int_{\sigma_1}^{\sigma_0}
+    C \cdot \log T ^ 2
+    \frac{C'}{\varepsilon|\sigma - T i|^2}
+    X^{\sigma_0}
+    \ d\sigma
+    \leq
+    C'' \cdot \frac{X\log T^2}{\varepsilon T^2}
+    ,
+    $$
+    where we used Theorems \ref{MellinOfSmooth1b}, the hypothesized bound on zeta and the fact that
+    $X^\sigma \le X^{\sigma_0} = X\cdot X^{1/\log X}=e \cdot X$.
+    Since $T>3$, we have $\log T^2 \leq C''' T$.
+  -/)]
 lemma I2Bound' {SmoothingF : ℝ → ℝ}
     (suppSmoothingF : Function.support SmoothingF ⊆ Icc (1 / 2) 2)
     (ContDiffSmoothingF : ContDiff ℝ 1 SmoothingF)
@@ -2913,7 +2978,6 @@ lemma I2Bound' {SmoothingF : ℝ → ℝ}
             _ ≤ 2 := (one_add_inv_log X_gt.le).le
         positivity
       _ = 2 * C' * X / (ε * T) := by ring
-  -- Now bound the integrand
   intro σ hσ
   unfold SmoothedChebyshevIntegrand
   have log_deriv_zeta_bound : ‖ζ' (σ - T * I) / ζ (σ - T * I)‖ ≤ C₂ * (C₃ * T) := by
@@ -2928,7 +2992,6 @@ lemma I2Bound' {SmoothingF : ℝ → ℝ}
       _ ≤ C₂ * Real.log T ^ 2 := by simp
       _ ≤ C₂ * (C₃ * T) := by gcongr; exact hC₃ T (by linarith)
 
-  -- Then estimate the remaining factors.
   calc
     ‖-ζ' (σ - T * I) / ζ (σ - T * I) * 𝓜 (fun x ↦ (Smooth1 SmoothingF ε x : ℂ))
         (σ - T * I) * X ^ (σ - T * I)‖ =
@@ -2989,6 +3052,19 @@ lemma I2Bound' {SmoothingF : ℝ → ℝ}
         _ = C' * X / (ε * T) := by
           field_simp
 
+
+
+@[blueprint "I8Bound'"
+  (title := "I8Bound'")
+  (statement := /--
+    Assuming a bound of the form of Lemma \ref{LogDerivZetaUniformLogSquaredBound}, we have that
+    $$|I_8(\nu,\varepsilon,X,T)|\ll\frac{X}{\varepsilon T}.$$
+  -/)
+  (proof := /--
+    By symmetry, note that
+    $$|I_8(\nu,\varepsilon,X,T)|=|\overline{I_2(\nu,\varepsilon,X,T)}|=|I_2(\nu,\varepsilon,X,T)|.$$
+    Applying Lemma \ref{I2Bound'} completes the proof.
+  -/)]
 lemma I8Bound' {SmoothingF : ℝ → ℝ}
     (suppSmoothingF : Function.support SmoothingF ⊆ Icc (1 / 2) 2)
     (ContDiffSmoothingF : ContDiff ℝ 1 SmoothingF)
@@ -3007,6 +3083,37 @@ lemma I8Bound' {SmoothingF : ℝ → ℝ}
   rw[I8I2 hX, norm_neg, norm_conj]
   exact i2Bound
 
+
+
+@[blueprint "I3Bound'"
+  (title := "I3Bound'")
+  (statement := /--
+    Assuming a bound of the form of Lemma \ref{LogDerivZetaUniformLogSquaredBound}, we have that
+    $$|I_3(\nu,\varepsilon,X,T)|\ll\frac{X}{\varepsilon}\,X^{-A/\log T}.$$
+  -/)
+  (proof := /--
+    Unfold the definitions and apply the triangle inequality.
+    $$
+    \left|I_{3}(\nu, \epsilon, X, T)\right| =
+    \left|\frac{1}{2\pi i} \int_{-T}^3
+    \left(\frac{-\zeta'}\zeta(\sigma_1 + t i) \right)
+    \mathcal M(\widetilde 1_\epsilon)(\sigma_1 + t i)
+    X^{\sigma_1 + t i}
+    \ i \ dt
+    \right|
+    $$
+    $$\leq
+    \frac{1}{2\pi}
+    \int_{-T}^3
+    C \cdot \log t ^ 2
+    \frac{C'}{\epsilon|\sigma_1 + t i|^2}
+    X^{\sigma_1}
+    \ dt
+    ,
+    $$
+    where we used Theorems \ref{MellinOfSmooth1b} and the hypothesized bound on zeta.
+    Now we estimate $X^{\sigma_1} = X \cdot X^{-A/ \log T}$, and the integral is absolutely bounded.
+  -/)]
 theorem I3Bound' {SmoothingF : ℝ → ℝ}
     (suppSmoothingF : Function.support SmoothingF ⊆ Icc (1 / 2) 2)
     (ContDiffSmoothingF : ContDiff ℝ 1 SmoothingF)
@@ -3278,6 +3385,20 @@ theorem I3Bound' {SmoothingF : ℝ → ℝ}
   field_simp
   rfl
 
+
+
+@[blueprint "I7Bound'"
+  (title := "I7Bound'")
+  (statement := /--
+    Assuming a bound of the form of Lemma \ref{LogDerivZetaUniformLogSquaredBound}, we have that
+    $$|I_7(\nu,\varepsilon,X,T)|\ll\frac{X}{\varepsilon}\,X^{-A/\log T}.$$
+  -/)
+  (proof := /--
+    By symmetry, note that
+    $$|I_7(\nu,\varepsilon,X,T)|=|\overline{I_3(\nu,\varepsilon,X,T)}|=|I_3(\nu,\varepsilon,X,T)|.$$
+    Applying Lemma \ref{I3Bound'} completes the proof.
+  -/)
+  (latexEnv := "lemma")]
 lemma I7Bound' {SmoothingF : ℝ → ℝ}
     (suppSmoothingF : Function.support SmoothingF ⊆ Icc (1 / 2) 2)
     (ContDiffSmoothingF : ContDiff ℝ 1 SmoothingF)
@@ -3293,6 +3414,22 @@ lemma I7Bound' {SmoothingF : ℝ → ℝ}
   intro σ₁
   rwa [I7I3 (by linarith), norm_conj]
 
+
+
+@[blueprint "I4Bound'"
+  (title := "I4Bound'")
+  (statement := /--
+    We have that
+    $$|I_4(\nu,\varepsilon,X,T)|\ll\frac{X}{\varepsilon}\,X^{-A/\log T}.$$
+  -/)
+  (proof := /--
+    The analysis of $I_4$ is similar to that of $I_2$, (in Lemma \ref{I2Bound'}) but even easier.
+    Let $C$ be the sup of $-\zeta'/\zeta$ on the curve $\sigma_2 + 3 i$ to $\sigma_1+ 3i$ (this curve is compact, and away from the pole at $s=1$).
+    Apply Theorem \ref{MellinOfSmooth1b} to get the bound $1/(\epsilon |s|^2)$, which is bounded by $C'/\epsilon$.
+    And $X^s$ is bounded by $X^{\sigma_1} = X \cdot X^{-A/\log T}$.
+    Putting these together gives the result.
+  -/)
+  (latexEnv := "lemma")]
 lemma I4Bound' {SmoothingF : ℝ → ℝ}
     (suppSmoothingF : Function.support SmoothingF ⊆ Icc (1 / 2) 2)
     (ContDiffSmoothingF : ContDiff ℝ 1 SmoothingF)
@@ -3450,7 +3587,6 @@ lemma I4Bound' {SmoothingF : ℝ → ℝ}
       rw[← Real.le_log_iff_exp_le] at this
       · have h1 : 0 ≤ (A / (1 - σ₂)) ^ (1 : ℝ)⁻¹ := by apply Real.rpow_nonneg (by exact expr_nonneg)
         have h2 : 0 < (1 : ℝ) := by exact Real.zero_lt_one
-        -- Nat.ofNat_pos'
         rw[← Real.rpow_le_rpow_iff h1 logTlb_nonneg h2] at this
         have h: ((A / (1 - σ₂)) ^ (1 : ℝ)⁻¹) ^ (1 : ℝ) = A / (1 - σ₂) := rpow_inv_rpow (by exact expr_nonneg) (Ne.symm (zero_ne_one' ℝ))
         rw[h, div_le_iff₀, mul_comm, ← div_le_iff₀] at this
@@ -3628,7 +3764,7 @@ lemma I4Bound' {SmoothingF : ℝ → ℝ}
               rw[Complex.norm_of_nonneg]
               · rw[Complex.arg_ofReal_of_nonneg]
                 · rw[zero_mul, neg_zero, Real.exp_zero]
-                  simp only [inv_one, mul_one, inv_pow]
+                  simp only [inv_one, mul_one]
                   refine rpow_le_rpow_of_exponent_le ?_ ?_
                   · linarith
                   · unfold uIoc at xInIoc
@@ -3666,6 +3802,20 @@ lemma I4Bound' {SmoothingF : ℝ → ℝ}
   · simp only [norm_nonneg]
   norm_num
 
+
+
+@[blueprint "I6Bound'"
+  (title := "I6Bound'")
+  (statement := /--
+    We have that
+    $$|I_6(\nu,\varepsilon,X,T)|\ll\frac{X}{\varepsilon}\,X^{-A/\log T}.$$
+  -/)
+  (proof := /--
+    By symmetry, note that
+    $$|I_6(\nu,\varepsilon,X,T)|=|\overline{I_4(\nu,\varepsilon,X,T)}|=|I_4(\nu,\varepsilon,X,T)|.$$
+    Applying Lemma \ref{I4Bound'} completes the proof.
+  -/)
+  (latexEnv := "lemma")]
 lemma I6Bound' {SmoothingF : ℝ → ℝ}
     (suppSmoothingF : Function.support SmoothingF ⊆ Icc (1 / 2) 2)
     (ContDiffSmoothingF : ContDiff ℝ 1 SmoothingF)
@@ -3683,7 +3833,9 @@ lemma I6Bound' {SmoothingF : ℝ → ℝ}
   intro σ₁
   rwa [I6I4 (by linarith), norm_neg, norm_conj]
 
--- coming from ZetaBounds
+
+
+-- analouge from ZetaBounds
 lemma ZetaZeroFree12 :
     ∃ (A : ℝ) (_ : A ∈ Ioc 0 (1 / 2)),
     ∀ (σ : ℝ)
@@ -3702,7 +3854,9 @@ lemma ZetaZeroFree12 :
   rw [pow_one, sub_le_sub_iff_left, div_div, div_le_div_iff_of_pos_left EinIoo.1 log_pos (mul_pos three_pos (Real.log_pos (lt_trans one_lt_ofNat ht)))] at contra
   linarith
 
--- coming from ZetaBounds
+
+
+-- analouge from ZetaBounds
 theorem LogDerivZetaHolcLargeT12 :
     ∃ (A : ℝ) (_ : A ∈ Ioc 0 (1 / 2)), ∀ (T : ℝ) (_ : 3 ≤ T),
     HolomorphicOn (fun (s : ℂ) ↦ ζ' s / (ζ s))
@@ -3750,6 +3904,8 @@ theorem LogDerivZetaHolcLargeT12 :
         apply min_le_right
       _ = _ := by field_simp; simp
 
+
+-- analouge from MediumPNT
 lemma LogDerivZetaBoundedAndHolo12 : ∃ A C : ℝ, 0 < C ∧ A ∈ Ioc 0 (1 / 2) ∧ LogDerivZetaHasBound 1 2 A C
     ∧ ∀ (T : ℝ) (_ : 3 ≤ T),
     HolomorphicOn (fun (s : ℂ) ↦ ζ' s / (ζ s))
@@ -3780,6 +3936,27 @@ lemma LogDerivZetaBoundedAndHolo12 : ∃ A C : ℝ, 0 < C ∧ A ∈ Ioc 0 (1 / 2
       exact Real.log_nonneg (le_trans one_le_ofNat hT)
     · apply min_le_right
 
+
+
+@[blueprint "StrongPNT"
+  (title := "StrongPNT")
+  (statement := /--
+  We have that
+  $$
+  \left|I_{4}(\nu, \epsilon, X, \sigma_1, \sigma_2)\right| \ll \frac{X}{\epsilon}\,
+   X^{-\frac{A}{(\log T)^9}}
+  .
+  $$
+  Same with $I_6$.
+  -/)
+  (proof := /--
+  The analysis of $I_4$ is similar to that of $I_2$, (in Lemma \ref{I2Bound}) but even easier.
+  Let $C$ be the sup of $-\zeta'/\zeta$ on the curve $\sigma_2 + 3 i$ to $1+ 3i$ (this curve is compact, and away from the pole at $s=1$).
+  Apply Theorem \ref{MellinOfSmooth1b} to get the bound $1/(\epsilon |s|^2)$, which is bounded by $C'/\epsilon$.
+  And $X^s$ is bounded by $X^{\sigma_1} = X \cdot X^{-A/ \log T^9}$.
+  Putting these together gives the result.
+  -/)
+  (latexEnv := "theorem")]
 theorem StrongPNT : ∃ c > 0,
     (ψ - id) =O[atTop]
       fun (x : ℝ) ↦ x * Real.exp (-c * (Real.log x) ^ ((1 : ℝ) / 2)) := by
