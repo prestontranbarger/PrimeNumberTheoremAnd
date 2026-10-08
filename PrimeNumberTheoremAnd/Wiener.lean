@@ -185,9 +185,11 @@ lemma second_fourier_integrable_aux1 (hcont : Measurable ψ) (hsupp : Integrable
   intro ν
   constructor
   · apply Measurable.aestronglyMeasurable
-    -- TODO: find out why fun_prop does not play well with Multiplicative.ofAdd
-    simp only [neg_mul, ofReal_exp, ofReal_neg, ofReal_mul, ofReal_sub, ofReal_one,
-      Multiplicative.ofAdd, Equiv.coe_fn_mk, smul_eq_mul]
+    -- `Multiplicative.ofAdd x` is definitionally `x`; unfold it by `change` since `fun_prop`
+    -- does not see through it.
+    change Measurable (Function.uncurry fun (u : ℝ) (a : ℝ) ↦ ((rexp (-u * (σ' - 1))) : ℂ) •
+      (𝐞 (-(a * (u / (2 * π)))) : ℂ) • ψ a)
+    simp only [neg_mul, ofReal_exp, ofReal_neg, ofReal_mul, ofReal_sub, ofReal_one, smul_eq_mul]
     fun_prop
   · let f1 : ℝ → ENNReal := fun a1 ↦ ‖cexp (-(↑a1 * (↑σ' - 1)))‖ₑ
     let f2 : ℝ → ENNReal := fun a2 ↦ ‖ψ a2‖ₑ
@@ -671,7 +673,7 @@ lemma dirichlet_test' {a b : ℕ → ℝ} (ha : 0 ≤ a) (hb : 0 ≤ b)
     (h : Summable (shift (cumsum a) * nnabla b)) : Summable (a * b) := by
   have l1 : ∀ᶠ n in atTop, 0 ≤ (shift (cumsum a) * nnabla b) n := by
     filter_upwards [hbb] with n hb
-    exact mul_nonneg (by simpa [shift] using! Finset.sum_nonneg' ha) (sub_nonneg.mpr hb)
+    exact mul_nonneg (by simpa [shift] using! Finset.sum_nonneg (fun n _ ↦ ha n)) (sub_nonneg.mpr hb)
   rw [summable_iff_bounded (mul_nonneg ha hb)]
   rw [summable_iff_bounded' l1] at h
   apply bounded_of_shift
@@ -1349,10 +1351,10 @@ lemma cancel_aux {C : ℝ} {f g : ℕ → ℝ} (hf : 0 ≤ f) (hg : 0 ≤ g)
 
   have l1 (n : ℕ) :
       (g n - g (n + 1)) * ∑ i ∈ Finset.range (n + 1), f i ≤ (g n - g (n + 1)) * (C * (n + 1)) := by
-    apply mul_le_mul le_rfl (by simpa using! hf' (n + 1)) (Finset.sum_nonneg' hf) ?_
+    apply mul_le_mul le_rfl (by simpa using! hf' (n + 1)) (Finset.sum_nonneg (fun n _ ↦ hf n)) ?_
     simp only [sub_nonneg] ; apply hg' ; simp
   have l2 (x : ℕ) : C * (↑(x + 1) + 1) - C * (↑x + 1) = C := by simp ; ring
-  have l3 (n : ℕ) : 0 ≤ cumsum f n := Finset.sum_nonneg' hf
+  have l3 (n : ℕ) : 0 ≤ cumsum f n := Finset.sum_nonneg (fun n _ ↦ hf n)
 
   convert_to ∑ i ∈ Finset.range n, (g i) • (f i) ≤ _
   · simp [mul_comm]
@@ -1432,7 +1434,8 @@ theorem sum_le_integral {x₀ : ℝ} {f : ℝ → ℝ} {n : ℕ} (hf : AntitoneO
     rw [← l6] ; apply intervalIntegral.integral_mono_ae_restrict (by linarith) (by simp) l4
     apply eventually_of_mem _ l5
     have : (Ioc x₀ (x₀ + 1))ᶜ ∩ Icc x₀ (x₀ + 1) = {x₀} := by simp [← sdiff_eq_compl_inter]
-    simp [ae, this]
+    rw [mem_ae_iff, Measure.restrict_apply measurableSet_Ioc.compl, this]
+    simp
 
   have l2 : AntitoneOn (fun x ↦ f (x₀ + x)) (Icc 1 ↑(n + 1)) := by
     intro u ⟨hu1, _⟩ v ⟨_, hv2⟩ huv ; push_cast at hv2
@@ -1515,7 +1518,7 @@ lemma hh_integrable_aux (ha : 0 < a) (hb : 0 < b) (hc : 0 < c) :
   have k3 : ContinuousWithinAt g₀ (Ici 0) 0 := by
     rw [Metric.continuousWithinAt_iff]
     rw [Metric.tendsto_nhdsWithin_nhds] at k2
-    peel k2 with ε hε δ hδ x h
+    gconvert k2 using 5 with ε hε δ hδ x h
     intro (hx : 0 ≤ x)
     have := le_iff_lt_or_eq.mp hx
     cases this with
@@ -2452,7 +2455,7 @@ theorem WeakPNT : Tendsto (fun N ↦ cumsum Λ N / N) atTop (𝓝 1) := by
     simp only [F, this, vonMangoldt.residueClass, Nat.totient_one, Nat.cast_one, inv_one, one_div, sub_left_inj]
     apply LSeries_congr
     intro n _
-    simp only [ofReal_inj, indicator_apply_eq_self, mem_setOf_eq]
+    simp only [ofReal_inj, indicator_apply_eq_self, mem_ofPred_eq]
     exact fun hn ↦ absurd (Subsingleton.eq_one _) hn
   have l3 : ContinuousOn F {s | 1 ≤ s.re} := vonMangoldt.continuousOn_LFunctionResidueClassAux 1
   have l4 : cheby Λ := vonMangoldt_cheby
@@ -2576,7 +2579,7 @@ lemma tendsto_tsum_of_monotone_convergence
     (hmono : ∀ k, Monotone (fun n => f n k))
     (hlim : ∀ k, Tendsto (fun n => f n k) atTop (𝓝 (g k))) :
     Tendsto (fun n => ∑' k, f n k) atTop (𝓝 (∑' k, g k)) := by
-  letI : MeasurableSpace β := ⊤
+  let : MeasurableSpace β := ⊤
   let μ : Measure β := Measure.count
   have hg_iSup (k : β) : (⨆ n : ℕ, f n k) = g k := iSup_eq_of_tendsto (hmono k) (hlim k)
   have h_tend_lint : Tendsto (fun n => ∫⁻ k, f n k ∂μ) atTop (𝓝 (∫⁻ k, (⨆ n, f n k) ∂μ)) := by
@@ -2692,7 +2695,7 @@ lemma limiting_fourier_variant_lim1_aux
   · simp [base, hn]
   · have hnpos : 0 < (n : ℝ) := Nat.cast_pos.mpr (Nat.pos_of_ne_zero hn)
     have hbase_nonneg : 0 ≤ base n := by
-      simp only [base, hn, if_false]
+      simp only [base, hn, ite_false]
       exact div_nonneg (hpos n) (Real.rpow_pos_of_pos hnpos σ).le
     calc |base n * W n| = base n * W n := abs_of_nonneg (mul_nonneg hbase_nonneg (hW_nonneg n))
       _ ≤ base n * C := mul_le_mul_of_nonneg_left (hW_le_C n) hbase_nonneg
@@ -3035,7 +3038,7 @@ lemma limiting_fourier_variant
 
 
   have haux :
-    (fun σ' ↦
+    (fun (σ' : ℝ) ↦
         ∑' (n : ℕ),
           term (fun n ↦ (f n : ℂ)) (σ' : ℂ) n *
             𝓕 ψ.toFun (π⁻¹ * 2⁻¹ * Real.log ((n : ℝ) / x))
@@ -3345,7 +3348,7 @@ lemma norm_error_integral_le
     have hG' : AEMeasurable fun t : ℝ => G (1 + t * Complex.I) := hGline_meas.aemeasurable
     have hψ_meas' : AEMeasurable ψ := hψ_meas.aemeasurable
     have hx_ne : (x : ℂ) ≠ 0 := by exact_mod_cast (ne_of_gt hx)
-    haveI hx_ne' : NeZero (x : ℂ) := ⟨hx_ne⟩
+    have hx_ne' : NeZero (x : ℂ) := ⟨hx_ne⟩
     have hxpow_meas : AEMeasurable fun t : ℝ => ((x : ℂ) ^ (t * Complex.I)) := by
       have hcontℂ : Continuous fun z : ℂ => ((x : ℂ) ^ z) :=
         continuous_const_cpow (z := (x : ℂ))
